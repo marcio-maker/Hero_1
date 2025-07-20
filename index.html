@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <!-- Meta viewport otimizado para responsividade -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, minimum-scale=1.0">
+    <title>Carrossel Ondulado</title>
+
+    <!-- Pré-conexão para melhor performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Fontes do Google com display swap para melhor performance -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;700&display=swap" rel="stylesheet">
+
+    <!-- Favicon para melhor UX -->
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>👓</text></svg>">
+
+    <!-- Meta tags para SEO e compartilhamento -->
+    <meta name="description" content="Carrossel interativo com efeitos ondulados para exibição de produtos ópticos">
+    <meta name="theme-color" content="#c6f8b7">
+
+    <!-- Adicionando GSAP -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+
+    <style>
+        /* Reset CSS melhorado */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            /* Remove highlight no mobile */
+        }
+
+        /* Estilos base responsivos */
+        body {
+            font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #c6f8b7 0%, #acb8f7 100%);
+            color: #fff;
+            overflow-x: hidden;
+            height: 100vh;
+            line-height: 1.5;
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Container principal do carrossel */
+        .horizontal-scroll {
+            display: flex;
+            height: 100vh;
+            overflow-y: hidden;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
+            /* Firefox */
+            -webkit-overflow-scrolling: touch;
+            /* Suave no iOS */
+        }
+
+        /* Esconde scrollbar no Chrome/Safari */
+        .horizontal-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Seções individuais do carrossel */
+        .section {
+            flex: 0 0 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            scroll-snap-align: start;
+            position: relative;
+            padding: 0 10vw;
+            opacity: 0.5;
+            transition: opacity 1.2s ease, transform 1.2s ease;
+            will-change: transform, opacity;
+            /* Otimização de performance */
+        }
+
+        /* Seção ativa - estilos visíveis */
+        .section.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Container de conteúdo responsivo */
+        .content-wrapper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            max-width: 1200px;
+            transition: transform 1s ease;
+
+            /* Layout responsivo - coluna em mobile */
+            flex-direction: column;
+        }
+
+        /* Container de texto */
+        .text-container {
+            flex: 1;
+            padding-right: 5vw;
+            transform: translateX(-5vw);
+            transition: transform 0.8s ease 0.3s, opacity 0.8s ease 0.3s;
+            opacity: 0;
+            order: 2;
+            /* Texto abaixo em mobile */
+            text-align: center;
+            /* Centralizado em mobile */
+            padding: 0 5vw;
+            /* Padding ajustado para mobile */
+            margin-bottom: 2rem;
+            /* Espaço para a imagem em mobile */
+        }
+
+        /* Efeitos quando a seção está ativa */
+        .section.active .text-container {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        /* Título da seção - responsivo com clamp */
+        /* TÍTULO PRINCIPAL */
+        .section-title {
+            font-size: clamp(2.5rem, 8vw, 4rem);
+            line-height: 1.3;
+            margin-bottom: 1rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-align: center;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            transform: translateY(30px);
+            transition: all 0.8s ease-out 0.4s;
+            opacity: 0;
+            font-family: 'Poppins', sans-serif;
+            width: 100%;
+        }
+
+        /* SUBTÍTULO (VERSÃO ESCURA) */
+        .section-subtitle {
+            font-size: clamp(1rem, 3.5vw, 1.4rem);
+            color: #4d5256;
+            /* Azul claro que contrasta com gradiente */
+            text-align: center;
+            max-width: 600px;
+            margin: 0 auto 3rem;
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.8s ease-out 0.6s;
+            font-weight: 400;
+            line-height: 1.6;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+            padding: 0 20px;
+        }
+
+        /* CLASSES ATIVAS (IMPORTANTE!) */
+        .section.active .section-title,
+        .section.active .section-subtitle {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        /* NOVOS ESTILOS PARA OS BOTÕES */
+        .button-container {
+            display: flex;
+            gap: 15px;
+            margin-top: 2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            opacity: 1 !important;
+            transform: none !important;
+        }
+
+        .btn-agendar,
+        .btn-saiba-mais {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 50px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            font-size: 1rem;
+            opacity: 1 !important;
+            transform: none !important;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-agendar {
+            background: linear-gradient(135deg, #3498db 0%, #2ecc71 100%);
+            color: white;
+        }
+
+        .btn-saiba-mais {
+            background: rgba(255, 255, 255, 0.9);
+            color: #2c3e50;
+            border: 1px solid rgba(44, 62, 80, 0.2);
+        }
+
+        .btn-agendar:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(52, 152, 219, 0.4);
+        }
+
+        .btn-saiba-mais:hover {
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 1);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Efeito de onda no hover */
+        .btn-agendar::after,
+        .btn-saiba-mais::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 5px;
+            height: 5px;
+            background: rgba(255, 255, 255, 0.5);
+            opacity: 0;
+            border-radius: 100%;
+            transform: scale(1, 1) translate(-50%);
+            transform-origin: 50% 50%;
+            z-index: -1;
+        }
+
+        .btn-agendar:hover::after,
+        .btn-saiba-mais:hover::after {
+            animation: ripple 1s ease-out;
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(0, 0);
+                opacity: 0.5;
+            }
+
+            100% {
+                transform: scale(20, 20);
+                opacity: 0;
+            }
+        }
+
+        /* Responsividade para os botões */
+        @media (max-width: 768px) {
+            .button-container {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn-agendar,
+            .btn-saiba-mais {
+                width: 100%;
+                max-width: 250px;
+            }
+        }
+
+        /* Container da imagem */
+        .image-container {
+            flex: 1;
+            transform: translateX(5vw);
+            opacity: 0;
+            transition: transform 1s ease 1s, opacity 1s ease 1s;
+            perspective: 1000px;
+            order: 1;
+            /* Imagem acima em mobile */
+            width: 100%;
+            /* Largura total em mobile */
+            max-width: 500px;
+            /* Limita tamanho em mobile */
+            margin: 0 auto 2rem;
+            /* Centraliza e adiciona espaço */
+        }
+
+        .section.active .image-container {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        /* Imagem de fundo com efeitos 3D */
+        .image-bg {
+            width: 100%;
+            /* Ajustado para mobile */
+            height: 50vh;
+            /* Altura reduzida em mobile */
+            max-width: 900px;
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center center;
+            filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.1));
+            transform: rotateY(15deg) rotateX(5deg);
+            transition: transform 0.2s ease;
+            animation: float 3s ease-in-out infinite, wave 12s ease-in-out infinite;
+            transform-style: preserve-3d;
+            will-change: transform;
+            transform-origin: center center;
+        }
+
+        /* Animação de onda suave */
+        @keyframes wave {
+
+            0%,
+            100% {
+                transform: rotateY(15deg) rotateX(5deg) translateY(0) translateX(0);
+            }
+
+            25% {
+                transform: rotateY(20deg) rotateX(7deg) translateY(-10px) translateX(5px);
+            }
+
+            50% {
+                transform: rotateY(15deg) rotateX(5deg) translateY(5px) translateX(-5px);
+            }
+
+            75% {
+                transform: rotateY(10deg) rotateX(3deg) translateY(-5px) translateX(5px);
+            }
+        }
+
+        /* Animação de flutuação */
+        @keyframes float {
+
+            0%,
+            100% {
+                transform: rotateY(15deg) rotateX(5deg) translateY(0);
+            }
+
+            50% {
+                transform: rotateY(15deg) rotateX(5deg) translateY(-20px);
+            }
+        }
+
+        /* Efeito de onda entre seções */
+        .section::before {
+            content: '';
+            position: absolute;
+            bottom: -10vh;
+            left: 0;
+            width: 100%;
+            height: 20vh;
+            background: linear-gradient(to top, rgba(233, 240, 243, 0.8), transparent);
+            clip-path: path('M0,50 C150,150 350,0 500,50 L500,0 L0,0 Z');
+            transform: translateY(100%);
+            transition: transform 1.5s ease;
+            z-index: 1;
+        }
+
+        .section.active::before {
+            transform: translateY(0);
+        }
+
+        /* Indicadores de scroll */
+        .scroll-indicators {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 1rem;
+            z-index: 10;
+        }
+
+        .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+            transition: all 0.5s ease;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .indicator.active {
+            background: #2c3e50;
+            transform: scale(1.3);
+        }
+
+        /* Controles de navegação */
+        .nav-controls {
+            position: fixed;
+            right: 2rem;
+            bottom: 2rem;
+            display: flex;
+            gap: 1rem;
+            z-index: 10;
+        }
+
+        .nav-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.5s ease;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            touch-action: manipulation;
+            /* Melhora interação em touch */
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: scale(1.1);
+        }
+
+        .nav-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: #2c3e50;
+        }
+
+        /* Media Queries para diferentes tamanhos de tela */
+
+        /* Tablet (768px e acima) */
+        @media (min-width: 768px) {
+            .content-wrapper {
+                flex-direction: row;
+                /* Volta ao layout linha em tablets */
+            }
+
+            .text-container {
+                order: 1;
+                /* Texto à esquerda */
+                text-align: left;
+                /* Alinhamento à esquerda */
+                padding-right: 5vw;
+                margin-bottom: 0;
+            }
+
+            .image-container {
+                order: 2;
+                /* Imagem à direita */
+                width: auto;
+                margin-bottom: 0;
+            }
+
+            .image-bg {
+                width: 120%;
+                height: 90vh;
+            }
+        }
+
+        /* Desktop (1024px e acima) */
+        @media (min-width: 1024px) {
+            .section-title {
+                font-size: clamp(3.5rem, 6vw, 4.5rem);
+            }
+
+            .section-subtitle {
+                font-size: 1.4rem;
+            }
+
+            .nav-controls {
+                right: 3rem;
+                bottom: 3rem;
+            }
+
+            .scroll-indicators {
+                bottom: 3rem;
+            }
+        }
+
+        /* Telas muito grandes (4K e acima) */
+        @media (min-width: 2000px) {
+            .content-wrapper {
+                max-width: 1600px;
+            }
+        }
+
+        /* Ajustes para mobile landscape */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .content-wrapper {
+                flex-direction: row;
+            }
+
+            .text-container {
+                order: 1;
+                text-align: left;
+                padding-right: 5vw;
+                margin-bottom: 0;
+            }
+
+            .image-container {
+                order: 2;
+                width: auto;
+                margin-bottom: 0;
+            }
+
+            .image-bg {
+                height: 80vh;
+            }
+        }
+
+        /* Acessibilidade: foco visível */
+        .nav-btn:focus-visible,
+        .indicator:focus-visible {
+            outline: 2px solid #2c3e50;
+            outline-offset: 2px;
+        }
+
+        /* Redução de movimento para preferências do usuário */
+        @media (prefers-reduced-motion: reduce) {
+            * {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Carrossel principal -->
+    <div class="horizontal-scroll" id="scroller">
+        <!-- Seção 1 - Prevenir -->
+        <section class="section active" aria-labelledby="section1-title" aria-describedby="section1-desc">
+            <div class="content-wrapper">
+                <div class="text-container">
+                    <h1 class="section-title" id="section1-title">PREVENIR</h1>
+                    <p class="section-subtitle" id="section1-desc">Enxergar o futuro começa com um exame gratuito.</p>
+
+                    <!-- BOTÕES CORRETAMENTE POSICIONADOS DENTRO DO TEXT-CONTAINER -->
+                    <div class="button-container">
+                        <a href="https://seusite.com/agendar" class="btn-agendar">Agendar Exame Gratuito</a>
+                        <a href="https://seusite.com/saiba-mais" class="btn-saiba-mais">Saiba Mais</a>
+                    </div>
+                </div>
+
+                <div class="image-container">
+                    <div class="image-bg" style="background-image: url('11324436-removebg-preview.png')" role="img"
+                        aria-label="Ilustração de óculos de grau">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Seção 2 - Economia -->
+        <section class="section" aria-labelledby="section2-title" aria-describedby="section2-desc">
+            <div class="content-wrapper">
+                <div class="text-container">
+                    <h1 class="section-title" id="section2-title">ECONOMIA</h1>
+                    <p class="section-subtitle" id="section2-desc">Óculos de qualidade com preço especial para você.</p>
+
+                    <!-- Botões dentro do text-container -->
+                    <div class="button-container">
+                        <a href="https://seusite.com/agendar" class="btn-agendar">Agendar Exame Gratuito</a>
+                        <a href="https://seusite.com/saiba-mais" class="btn-saiba-mais">Saiba Mais</a>
+                    </div>
+                </div>
+
+                <div class="image-container">
+                    <div class="image-bg" style="background-image: url('11324435-removebg-preview.png')" role="img"
+                        aria-label="Ilustração de óculos de sol">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Seção 3 - Clareza -->
+        <section class="section" aria-labelledby="section3-title" aria-describedby="section3-desc">
+            <div class="content-wrapper">
+                <div class="text-container">
+                    <h1 class="section-title" id="section3-title">CLAREZA</h1>
+                    <p class="section-subtitle" id="section3-desc">Veja o mundo com mais nitidez.</p>
+
+                    <!-- Botões dentro do text-container -->
+                    <div class="button-container">
+                        <a href="https://seusite.com/agendar" class="btn-agendar">Agendar Exame Gratuito</a>
+                        <a href="https://seusite.com/saiba-mais" class="btn-saiba-mais">Saiba Mais</a>
+                    </div>
+                </div>
+
+                <div class="image-container">
+                    <div class="image-bg"
+                        style="background-image: url('sunglass-with-transparent-background_807689-2305-removebg-preview.png')"
+                        role="img" aria-label="Ilustração de óculos estilosos">
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Indicadores de navegação -->
+    <div class="scroll-indicators" role="tablist" aria-label="Navegação do carrossel">
+        <button class="indicator active" data-index="0" role="tab" aria-selected="true" aria-controls="section1"
+            tabindex="0"></button>
+        <button class="indicator" data-index="1" role="tab" aria-selected="false" aria-controls="section2"
+            tabindex="0"></button>
+        <button class="indicator" data-index="2" role="tab" aria-selected="false" aria-controls="section3"
+            tabindex="0"></button>
+    </div>
+
+    <!-- Controles de navegação -->
+    <div class="nav-controls">
+        <button class="nav-btn" id="prev-btn" aria-label="Slide anterior">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z" />
+            </svg>
+        </button>
+        <button class="nav-btn" id="next-btn" aria-label="Próximo slide">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z" />
+            </svg>
+        </button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Elementos do DOM
+            const scroller = document.getElementById('scroller');
+            const sections = document.querySelectorAll('.section');
+            const indicators = document.querySelectorAll('.indicator');
+            const prevBtn = document.getElementById('prev-btn');
+            const nextBtn = document.getElementById('next-btn');
+
+            // Variáveis de estado
+            let currentIndex = 0;
+            let autoScrollInterval;
+            let isScrolling = false; // Previne conflitos de scroll
+            const sectionCount = sections.length;
+            const scrollDuration = 1200;
+            const autoScrollDelay = 8000;
+
+            // Função para ativar seção
+            function setActiveSection(index) {
+                // Atualiza atributos ARIA para acessibilidade
+                sections.forEach((section, i) => {
+                    const isActive = i === index;
+                    section.classList.toggle('active', isActive);
+                    section.setAttribute('aria-hidden', !isActive);
+                });
+
+                indicators.forEach((indicator, i) => {
+                    const isActive = i === index;
+                    indicator.classList.toggle('active', isActive);
+                    indicator.setAttribute('aria-selected', isActive);
+                    indicator.setAttribute('tabindex', isActive ? '0' : '-1');
+                });
+
+                currentIndex = index;
+            }
+
+            // Navega para uma seção específica
+            function goToSection(index) {
+                if (isScrolling) return;
+
+                // Ajusta índice para loop contínuo
+                if (index < 0) index = sectionCount - 1;
+                if (index >= sectionCount) index = 0;
+
+                isScrolling = true;
+
+                // Scroll suave com fallback para navegadores antigos
+                if ('scrollBehavior' in document.documentElement.style) {
+                    scroller.scrollTo({
+                        left: index * window.innerWidth,
+                        behavior: 'smooth'
+                    });
+                } else {
+                    scroller.scrollLeft = index * window.innerWidth;
+                }
+
+                setActiveSection(index);
+                restartAutoScroll();
+
+                // Reseta flag após a duração do scroll
+                setTimeout(() => {
+                    isScrolling = false;
+                }, scrollDuration);
+            }
+
+            // Scroll automático
+            function startAutoScroll() {
+                autoScrollInterval = setInterval(() => {
+                    goToSection((currentIndex + 1) % sectionCount);
+                }, autoScrollDelay);
+            }
+
+            function restartAutoScroll() {
+                clearInterval(autoScrollInterval);
+                startAutoScroll();
+            }
+
+            // Efeito de movimento com mouse
+            const imageContainers = document.querySelectorAll('.image-container');
+
+            imageContainers.forEach(container => {
+                const image = container.querySelector('.image-bg');
+                if (!image) return;
+
+                // Configurações ajustáveis
+                const sensitivity = 25;
+                const maxRotation = 10;
+                const scaleFactor = 0.05;
+                const floatIntensity = 15;
+
+                let isHovering = false;
+                let baseRotationX = 5;
+                let baseRotationY = 15;
+                let animationFrame;
+                let currentScale = 1;
+
+                // Armazena a animação original
+                const originalAnimation = image.style.animation;
+
+                // Função para aplicar transformações suaves
+                function applyTransform(moveX = 0, moveY = 0) {
+                    if (!image) return;
+
+                    const now = Date.now();
+
+                    // Calcula efeito de onda automático
+                    const waveX = Math.sin(now / 1200) * 5;
+                    const waveY = Math.cos(now / 1500) * 5;
+                    const floatY = Math.sin(now / 800) * floatIntensity;
+
+                    if (isHovering) {
+                        // Efeitos durante o hover
+                        currentScale = Math.min(currentScale + 0.02, 1 + scaleFactor);
+
+                        image.style.transform = `
+                            rotateY(${baseRotationY + moveX}deg)
+                            rotateX(${baseRotationX - moveY}deg)
+                            scale(${currentScale})
+                            translateZ(20px)
+                        `;
+                        image.style.filter = `
+                            drop-shadow(0 20px 40px rgba(0, 0, 0, 0.2))
+                            brightness(1.1)
+                        `;
+                        image.style.transition = 'transform 0.3s ease-out, filter 0.3s ease';
+                    } else {
+                        // Efeito automático quando não há hover
+                        currentScale = Math.max(currentScale - 0.02, 1);
+
+                        image.style.transform = `
+                            rotateY(${baseRotationY + waveX}deg)
+                            rotateX(${baseRotationX + waveY}deg)
+                            translateY(${floatY}px)
+                            scale(${currentScale})
+                        `;
+                        image.style.filter = 'drop-shadow(0 15px 30px rgba(0, 0, 0, 0.1))';
+                        image.style.transition = 'transform 0.5s ease-out, filter 0.5s ease';
+                    }
+
+                    animationFrame = requestAnimationFrame(() => applyTransform(moveX, moveY));
+                }
+
+                // Inicia a animação
+                applyTransform();
+
+                // Event listeners
+                container.addEventListener('mouseenter', () => {
+                    isHovering = true;
+                    image.style.animation = 'none';
+                    image.style.willChange = 'transform, filter';
+                });
+
+                container.addEventListener('mouseleave', () => {
+                    isHovering = false;
+                    image.style.animation = originalAnimation;
+                });
+
+                container.addEventListener('mousemove', (e) => {
+                    if (!isHovering) return;
+
+                    const rect = container.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+
+                    // Calcula movimento com limite máximo
+                    let moveX = (x - centerX) / sensitivity;
+                    let moveY = (y - centerY) / sensitivity;
+
+                    // Limita a rotação máxima
+                    moveX = Math.max(Math.min(moveX, maxRotation), -maxRotation);
+                    moveY = Math.max(Math.min(moveY, maxRotation), -maxRotation);
+
+                    // Suaviza o movimento
+                    moveX = moveX * 0.3 + moveX * 0.7;
+                    moveY = moveY * 0.3 + moveY * 0.7;
+
+                    cancelAnimationFrame(animationFrame);
+                    applyTransform(moveX, moveY);
+                });
+
+                // Efeito de clique
+                container.addEventListener('click', () => {
+                    if (!isHovering) return;
+
+                    // Efeito de clique rápido
+                    image.style.transform += ' scale(0.95)';
+                    setTimeout(() => {
+                        image.style.transform = image.style.transform.replace(' scale(0.95)', '');
+                    }, 200);
+                });
+            });
+
+
+
+            // Event listeners para navegação
+            prevBtn.addEventListener('click', () => goToSection(currentIndex - 1));
+            nextBtn.addEventListener('click', () => goToSection(currentIndex + 1));
+
+            // Event listeners para teclado (acessibilidade)
+            prevBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    goToSection(currentIndex - 1);
+                }
+            });
+
+            nextBtn.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    goToSection(currentIndex + 1);
+                }
+            });
+
+            // Navegação por indicadores
+            indicators.forEach(indicator => {
+                indicator.addEventListener('click', () => {
+                    goToSection(parseInt(indicator.getAttribute('data-index')));
+                });
+
+                // Navegação por teclado
+                indicator.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        goToSection(parseInt(indicator.getAttribute('data-index')));
+                    }
+                });
+            });
+
+            // Detecta mudanças no scroll
+            scroller.addEventListener('scroll', () => {
+                const newIndex = Math.round(scroller.scrollLeft / window.innerWidth);
+                if (newIndex !== currentIndex) {
+                    setActiveSection(newIndex);
+                    restartAutoScroll();
+                }
+            });
+
+            // Pausa no hover/interação
+            scroller.addEventListener('mouseenter', () => clearInterval(autoScrollInterval));
+            scroller.addEventListener('touchstart', () => clearInterval(autoScrollInterval));
+            scroller.addEventListener('mouseleave', startAutoScroll);
+            scroller.addEventListener('touchend', startAutoScroll);
+
+            // Swipe para mobile
+            let touchStartX = 0;
+            let touchEndX = 0;
+
+            scroller.addEventListener('touchstart', (e) => {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            scroller.addEventListener('touchend', (e) => {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+
+            function handleSwipe() {
+                const threshold = 50; // Mínimo de pixels para considerar swipe
+                if (touchEndX < touchStartX - threshold) {
+                    goToSection(currentIndex + 1); // Swipe esquerda
+                } else if (touchEndX > touchStartX + threshold) {
+                    goToSection(currentIndex - 1); // Swipe direita
+                }
+            }
+
+            // Inicia auto-scroll
+            startAutoScroll();
+
+            // Efeito de onda suave contínuo
+            setInterval(() => {
+                const activeSection = document.querySelector('.section.active');
+                if (activeSection) {
+                    const wave = activeSection.querySelector('::before');
+                    if (wave) {
+                        wave.style.transitionDuration = '8s';
+                        wave.style.clipPath = 'path("M0,50 C150,100 350,20 500,50 L500,0 L0,0 Z")';
+                        setTimeout(() => {
+                            wave.style.transitionDuration = '12s';
+                            wave.style.clipPath = 'path("M0,50 C150,150 350,0 500,50 L500,0 L0,0 Z")';
+                        }, 4000);
+                    }
+                }
+            }, 8000);
+
+            // Redimensionamento da janela
+            window.addEventListener('resize', () => {
+                // Ajusta scroll para a seção atual após redimensionamento
+                scroller.scrollLeft = currentIndex * window.innerWidth;
+            });
+
+            // ************************************
+            // ADICIONE O CÓDIGO GSAP AQUI
+            // ************************************
+            // ANIMAÇÃO GSAP PARA OS BOTÕES
+            gsap.from(".btn-agendar", {
+                duration: 1,
+                y: 20,
+                opacity: 0,
+                delay: 1,
+                ease: "back.out(1.7)"
+            });
+
+            gsap.from(".btn-saiba-mais", {
+                duration: 1,
+                y: 20,
+                opacity: 0,
+                delay: 1.2,
+                ease: "back.out(1.7)"
+            });
+
+            // EFEITO PULSO NO HOVER (GSAP)
+            document.querySelectorAll('.btn-agendar, .btn-saiba-mais').forEach(btn => {
+                btn.addEventListener('mouseenter', () => {
+                    gsap.to(btn, {
+                        scale: 1.05,
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                });
+
+                btn.addEventListener('mouseleave', () => {
+                    gsap.to(btn, {
+                        scale: 1,
+                        duration: 0.3,
+                        ease: "power2.out"
+                    });
+                });
+            });
+        }); // Fecha o event listener DOMContentLoaded
+    </script>
+</body>
+
+</html>
